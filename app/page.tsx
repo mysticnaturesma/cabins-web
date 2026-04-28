@@ -102,8 +102,13 @@ export default function Home() {
               href={cabin.airbnbUrl ?? cabin.icalUrl}
               target="_blank"
               rel="noreferrer"
-              aria-label={`Abrir anuncio de ${cabin.name}`}
+              aria-label={`Abrir la publicación de ${cabin.name}`}
             >
+              <div
+                className="insta-backdrop"
+                aria-hidden="true"
+                style={{ backgroundImage: `url(${cabin.photos[0]})` }}
+              />
               <img
                 src={cabin.photos[0]}
                 alt={`Foto de portada de ${cabin.name}`}
@@ -111,11 +116,9 @@ export default function Home() {
               />
               <div className="insta-overlay">
                 <div>
-                  <span className="insta-tag">Portada Airbnb</span>
                   <h2>{cabin.name}</h2>
                   <p>{cabin.tagline}</p>
                 </div>
-                <span className="insta-badge">Ver anuncio</span>
               </div>
             </a>
           ))}
