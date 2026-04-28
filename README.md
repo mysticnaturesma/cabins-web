@@ -26,3 +26,8 @@ Variables recomendadas para Vercel:
 - `NEXT_PUBLIC_CABANA_AIRBNB_URL`
 - `NEXT_PUBLIC_CABANA_SYNC_URL`
 - `NEXT_PUBLIC_CABANA_ICAL_URL`
+
+Configuración de Vercel:
+
+- El proyecto incluye [vercel.json](/Users/vadimwerefkin/Documents/New%20project/cabins-web/vercel.json) para forzar el preset `nextjs`
+- Si el proyecto ya estaba creado en Vercel, asegurate de que `Output Directory` esté vacío o en automático, no en `public`
