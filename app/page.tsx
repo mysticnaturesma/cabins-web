@@ -1,18 +1,138 @@
-import { cabins, gallery, mapLink, whatsappNumber, type CabinConfig } from "@/lib/site-data";
+import { cabins, gallery, mapLink, mapPreviewImage, whatsappDisplay, whatsappNumber, type CabinConfig } from "@/lib/site-data";
+import { buildCalendarCells, parseBusyRanges, type CalendarCell } from "@/lib/calendar";
+
+const weekdayLabels = ["L", "M", "M", "J", "V", "S", "D"];
+const monthFormatter = new Intl.DateTimeFormat("es-AR", {
+  month: "long",
+  year: "numeric",
+  timeZone: "America/Argentina/Salta",
+});
+
+type CalendarSnapshot = {
+  cabin: CabinConfig;
+  cells: CalendarCell[];
+  month: Date;
+  synced: boolean;
+};
+
+async function loadCalendarSnapshot(cabin: CabinConfig, month: Date): Promise<CalendarSnapshot> {
+  const response = await fetch(cabin.icalUrl, {
+    cache: "no-store",
+    headers: {
+      accept: "text/calendar, text/plain;q=0.9, */*;q=0.8",
+    },
+  });
+
+  if (!response.ok) {
+    return {
+      cabin,
+      month,
+      cells: buildCalendarCells(month, []),
+      synced: false,
+    };
+  }
+
+  const ics = await response.text();
+  const busyRanges = parseBusyRanges(ics);
+  return {
+    cabin,
+    month,
+    cells: buildCalendarCells(month, busyRanges),
+    synced: true,
+  };
+}
+
+function CalendarCard({
+  cabin,
+  cells,
+  month,
+  synced,
+}: {
+  cabin: CabinConfig;
+  cells: CalendarCell[];
+  month: Date;
+  synced: boolean;
+}) {
+  return (
+    <article className="calendar-card">
+      <div className="calendar-card-head">
+        <div>
+          <div className="calendar-title">{cabin.name}</div>
+          <p>Disponibilidad sincronizada desde el calendario de Airbnb.</p>
+        </div>
+        <span className="calendar-chip">{synced ? "Airbnb iCal" : "Sin datos"}</span>
+      </div>
+
+      <div className="calendar-month-label">{monthFormatter.format(month)}</div>
+
+      <div className="calendar-weekdays" aria-hidden="true">
+        {weekdayLabels.map((label) => (
+          <span key={`${cabin.name}-${label}`}>{label}</span>
+        ))}
+      </div>
+
+      <div className="calendar-grid">
+        {cells.map((cell, index) => (
+          <div
+            key={`${cabin.name}-${index}`}
+            className={`calendar-day${cell ? ` calendar-day--${cell.state}` : " is-empty"}`}
+            aria-hidden="true"
+          >
+            {cell?.day ? <span>{cell.day}</span> : null}
+          </div>
+        ))}
+      </div>
+
+      <div className="calendar-legend" aria-hidden="true">
+        <span className="legend-item">
+          <i className="legend-swatch legend-swatch--available" />
+          Disponible
+        </span>
+        <span className="legend-item">
+          <i className="legend-swatch legend-swatch--reserved" />
+          Reservado
+        </span>
+        <span className="legend-item">
+          <i className="legend-swatch legend-swatch--turnover" />
+          Cambio
+        </span>
+      </div>
+
+      <a href={cabin.icalUrl} target="_blank" rel="noreferrer" className="calendar-link">
+        Abrir iCal
+      </a>
+    </article>
+  );
+}
 
 function CabinCard({ cabin }: { cabin: CabinConfig }) {
+  const roomCards = [
+    { label: "Living", slug: "living", photo: cabin.photos[0] },
+    { label: "Cocina", slug: "cocina", photo: cabin.photos[1] },
+    { label: "Habitación", slug: "habitacion", photo: cabin.photos[2] },
+    { label: "Baño", slug: "banio", photo: cabin.photos[3] },
+  ];
+
   return (
     <article className="cabin-card">
       <div className="cabin-visual">
-        <div className="cabin-photos">
-          {cabin.photos.map((photo, index) => (
-            <img
-              key={photo}
-              src={photo}
-              alt={`${cabin.name} foto ${index + 1}`}
-              className={index === 0 ? "hero-photo" : "detail-photo"}
-              loading="lazy"
-            />
+        <div className="cabin-rooms">
+          {roomCards.map(({ label, slug, photo }) => (
+            <figure key={`${cabin.name}-${label}`} className={`room-card room-card--${slug}`}>
+              {photo ? (
+                <div className="room-media-wrap">
+                  <img className={`room-media room-media--${slug}`} src={photo} alt={`${cabin.name} - ${label}`} />
+                  <span className="room-badge">{label}</span>
+                </div>
+              ) : (
+                <div className="room-placeholder">
+                  <span>{label}</span>
+                  <strong>Foto pendiente</strong>
+                  <p>Subí una imagen interior para completar esta vista.</p>
+                </div>
+              )}
+              <figcaption>{label}</figcaption>
+            </figure>
           ))}
         </div>
       </div>
@@ -31,33 +151,15 @@ function CabinCard({ cabin }: { cabin: CabinConfig }) {
           ))}
         </div>
 
-        <div className="card-links">
-          {cabin.airbnbUrl ? (
-            <a className="button button-primary" href={cabin.airbnbUrl} target="_blank" rel="noreferrer">
-              Ver en Airbnb
-            </a>
-          ) : (
-            <span className="button button-muted">Link de Airbnb pendiente</span>
-          )}
-
-          {cabin.syncUrl ? (
-            <a className="button button-secondary" href={cabin.syncUrl} target="_blank" rel="noreferrer">
-              {cabin.syncLabel}
-            </a>
-          ) : (
-            <span className="button button-secondary">Sincronización de calendario</span>
-          )}
-
-          <a className="button button-secondary" href={cabin.icalUrl} target="_blank" rel="noreferrer">
-            Link iCal
-          </a>
-        </div>
       </div>
     </article>
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const month = new Date();
+  const calendarSnapshots = await Promise.all(cabins.map((cabin) => loadCalendarSnapshot(cabin, month)));
+
   return (
     <main className="page-shell">
       <section className="hero">
@@ -78,20 +180,6 @@ export default function Home() {
             </a>
           </div>
 
-          <div className="hero-stats">
-            <div className="stat">
-              <strong>2</strong>
-              <span>cabañas publicadas</span>
-            </div>
-            <div className="stat">
-              <strong>100%</strong>
-              <span>estilo natural</span>
-            </div>
-            <div className="stat">
-              <strong>24/7</strong>
-              <span>consulta por WhatsApp</span>
-            </div>
-          </div>
         </div>
 
         <div className="hero-panel hero-instagram">
@@ -102,24 +190,13 @@ export default function Home() {
               href={cabin.airbnbUrl ?? cabin.icalUrl}
               target="_blank"
               rel="noreferrer"
-              aria-label={`Abrir la publicación de ${cabin.name}`}
+              aria-label={`Abrir foto de ${cabin.name}`}
             >
-              <div
-                className="insta-backdrop"
-                aria-hidden="true"
-                style={{ backgroundImage: `url(${cabin.photos[0]})` }}
-              />
               <img
                 src={cabin.photos[0]}
                 alt={`Foto de portada de ${cabin.name}`}
                 className="insta-image"
               />
-              <div className="insta-overlay">
-                <div>
-                  <h2>{cabin.name}</h2>
-                  <p>{cabin.tagline}</p>
-                </div>
-              </div>
             </a>
           ))}
         </div>
@@ -140,24 +217,16 @@ export default function Home() {
       <section id="calendarios" className="section split-section">
         <div className="section-heading">
           <div className="eyebrow">Calendarios</div>
-          <h2>Sincronización rápida para mantener todo al día.</h2>
+          <h2>Dos almanaques para ver la disponibilidad de cada cabaña.</h2>
           <p>
-            Usá los enlaces iCal de cada cabaña para conectar Airbnb con tu gestor de
-            disponibilidad o con otro canal de reservas.
+            Tenés una vista clara de cada calendario y, si querés sincronizarlo, podés
+            abrir el enlace iCal de cada cabaña.
           </p>
         </div>
 
-        <div className="calendar-list">
-          {cabins.map((cabin) => (
-            <div key={`${cabin.name}-calendar`} className="calendar-item">
-              <div>
-                <h3>{cabin.name}</h3>
-                <p>{cabin.syncUrl ? "Airbnb + iCal" : "iCal disponible"}</p>
-              </div>
-              <a href={cabin.icalUrl} target="_blank" rel="noreferrer" className="button button-primary">
-                Abrir iCal
-              </a>
-            </div>
+        <div className="calendar-showcase">
+          {calendarSnapshots.map(({ cabin, cells, month, synced }) => (
+            <CalendarCard key={`${cabin.name}-calendar`} cabin={cabin} cells={cells} month={month} synced={synced} />
           ))}
         </div>
       </section>
@@ -165,27 +234,38 @@ export default function Home() {
       <section className="section map-section">
         <div className="map-copy">
           <div className="eyebrow">Ubicación</div>
-          <h2>Mapa listo para tu dirección exacta.</h2>
+          <h2>Ubicación de las cabañas.</h2>
           <p>
-            Acá dejé un bloque visual para el mapa. Cuando me pases la ubicación
-            exacta, lo conectamos con Google Maps o con un iframe embebido.
+            Tocá la vista previa para abrir la ubicación en Google Maps.
           </p>
           <div className="location-note">
-            <span>Dato pendiente:</span>
-            <p>Dirección, coordenadas o enlace de Google Maps.</p>
+            <span>Enlace directo:</span>
+            <p>Vista previa clickeable</p>
           </div>
           <a className="button button-secondary" href={mapLink} target="_blank" rel="noreferrer">
-            Abrir Google Maps
+            Abrir ubicación
           </a>
         </div>
 
-        <div className="map-frame" aria-label="Mapa de ubicación pendiente">
+        <a className="map-frame" href={mapLink} target="_blank" rel="noreferrer" aria-label="Abrir ubicación en Google Maps">
+          {mapPreviewImage ? (
+            <img src={mapPreviewImage} alt="" className="map-preview-image" aria-hidden="true" />
+          ) : (
+            <iframe
+              className="map-embed"
+              src={mapLink}
+              title="Vista previa de Google Maps"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+          )}
           <div className="map-overlay">
+            <span className="map-chip">Google Maps</span>
             <div className="pin" />
-            <h3>Insertar mapa aquí</h3>
-            <p>Podemos usar un iframe de Google Maps o una URL de ubicación exacta.</p>
+            <h3>Vista previa de la ubicación</h3>
+            <p>Vista previa interactiva para llegar sin vueltas.</p>
           </div>
-        </div>
+        </a>
       </section>
 
       <section className="section">
@@ -211,12 +291,11 @@ export default function Home() {
           <div className="eyebrow">Contacto</div>
           <h2>Reservas y consultas por WhatsApp.</h2>
           <p>
-            Reemplazá el número de ejemplo por el tuyo y el botón va a quedar listo
-            para recibir mensajes directos.
+            Escribime y coordinamos tu reserva directo por WhatsApp.
           </p>
         </div>
         <a className="button button-primary" href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer">
-          WhatsApp: {whatsappNumber}
+          WhatsApp: {whatsappDisplay}
         </a>
       </section>
     </main>
