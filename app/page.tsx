@@ -94,25 +94,31 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="hero-panel">
-          <div className="feature-card">
-            <div className="feature-card-top">
-              <span>Disponibilidad</span>
-              <span className="dot" />
-            </div>
-            <h2>Calendarios sincronizados con Airbnb</h2>
-            <p>
-              Publicá tus links iCal para mantener la ocupación actualizada y evitar
-              reservas duplicadas.
-            </p>
-          </div>
-          <div className="feature-card feature-card-alt">
-            <h3>Ubicación</h3>
-            <p>
-              La sección de mapa está lista para que pegues la dirección exacta o el
-              embed de Google Maps.
-            </p>
-          </div>
+        <div className="hero-panel hero-instagram">
+          {cabins.map((cabin) => (
+            <a
+              key={`hero-${cabin.name}`}
+              className="insta-card"
+              href={cabin.airbnbUrl ?? cabin.icalUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Abrir anuncio de ${cabin.name}`}
+            >
+              <img
+                src={cabin.photos[0]}
+                alt={`Foto de portada de ${cabin.name}`}
+                className="insta-image"
+              />
+              <div className="insta-overlay">
+                <div>
+                  <span className="insta-tag">Portada Airbnb</span>
+                  <h2>{cabin.name}</h2>
+                  <p>{cabin.tagline}</p>
+                </div>
+                <span className="insta-badge">Ver anuncio</span>
+              </div>
+            </a>
+          ))}
         </div>
       </section>
 
