@@ -15,7 +15,7 @@ const whatsappNumber = whatsappNumberRaw.replace(/\D/g, "");
 const whatsappDisplay = whatsappNumberRaw;
 const mapLink =
   process.env.NEXT_PUBLIC_MAP_LINK ?? "https://maps.app.goo.gl/DoJsPf2AHrmBy7Ly9";
-const mapPreviewImage = process.env.NEXT_PUBLIC_MAP_PREVIEW_IMAGE;
+const mapPreviewImage = process.env.NEXT_PUBLIC_MAP_PREVIEW_IMAGE ?? "/mapa/mini-mapa.png";
 
 const cabins: CabinConfig[] = [
   {
@@ -53,8 +53,7 @@ const cabins: CabinConfig[] = [
   {
     name: "Cabaña",
     tagline: "Más espacio, misma esencia natural.",
-    description:
-      "Un refugio pensado para grupos, parejas o familias que buscan comodidad, privacidad y una experiencia cálida entre árboles y aire puro.",
+    description: "Una cabaña mas amplia con todo lo que necesitas, comodidad, privacidad y tranquilidad.",
     airbnbUrl: process.env.NEXT_PUBLIC_CABANA_AIRBNB_URL,
     syncLabel: "Calendario iCal",
     syncUrl: process.env.NEXT_PUBLIC_CABANA_SYNC_URL,
@@ -84,12 +83,12 @@ const cabins: CabinConfig[] = [
 ];
 
 const gallery = [
-  "/cabins/tiny-home/main.png",
-  "/cabins/tiny-home/kitchen-1.png",
-  "/cabins/tiny-home/kitchen-2.png",
-  "/cabins/cabana/main.png",
-  "/cabins/cabana/living-1.png",
-  "/cabins/cabana/living-2.png",
+  "/gallery/gallery-1.jpg",
+  "/gallery/gallery-2.jpg",
+  "/gallery/gallery-3.jpg",
+  "/gallery/gallery-4.jpg",
+  "/gallery/gallery-5.jpg",
+  "/gallery/gallery-6.jpg",
 ];
 
 export { cabins, gallery, mapLink, mapPreviewImage, whatsappDisplay, whatsappNumber };
