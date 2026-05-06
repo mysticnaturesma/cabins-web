@@ -1,19 +1,44 @@
+import { CalendarCard } from "@/components/calendar-card";
+import { LightboxImage, PhotoLightboxProvider } from "@/components/photo-lightbox";
 import { cabins, gallery, mapLink, mapPreviewImage, whatsappDisplay, whatsappNumber, type CabinConfig } from "@/lib/site-data";
 import { buildCalendarCells, parseBusyRanges, type CalendarCell } from "@/lib/calendar";
 
-const weekdayLabels = ["L", "M", "M", "J", "V", "S", "D"];
+const heroPhotos = [
+  {
+    src: "/hero/hero-2.jpeg",
+    alt: "Exterior de la segunda cabaña",
+  },
+  {
+    src: "/hero/hero-1.jpeg",
+    alt: "Exterior de la primera cabaña",
+  },
+];
+
+type CalendarSnapshot = {
+  cabin: CabinConfig;
+  months: CalendarMonthSnapshot[];
+};
+
+type CalendarMonthSnapshot = {
+  label: string;
+  cells: CalendarCell[];
+};
+
 const monthFormatter = new Intl.DateTimeFormat("es-AR", {
   month: "long",
   year: "numeric",
   timeZone: "America/Argentina/Salta",
 });
 
-type CalendarSnapshot = {
-  cabin: CabinConfig;
-  cells: CalendarCell[];
-  month: Date;
-  synced: boolean;
-};
+function buildCalendarMonths(baseMonth: Date, busyRanges: ReturnType<typeof parseBusyRanges>): CalendarMonthSnapshot[] {
+  return Array.from({ length: 12 }, (_, index) => {
+    const monthDate = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + index, 1);
+    return {
+      label: monthFormatter.format(monthDate),
+      cells: buildCalendarCells(monthDate, busyRanges),
+    };
+  });
+}
 
 async function loadCalendarSnapshot(cabin: CabinConfig, month: Date): Promise<CalendarSnapshot> {
   const response = await fetch(cabin.icalUrl, {
@@ -26,9 +51,7 @@ async function loadCalendarSnapshot(cabin: CabinConfig, month: Date): Promise<Ca
   if (!response.ok) {
     return {
       cabin,
-      month,
-      cells: buildCalendarCells(month, []),
-      synced: false,
+      months: buildCalendarMonths(month, []),
     };
   }
 
@@ -36,73 +59,8 @@ async function loadCalendarSnapshot(cabin: CabinConfig, month: Date): Promise<Ca
   const busyRanges = parseBusyRanges(ics);
   return {
     cabin,
-    month,
-    cells: buildCalendarCells(month, busyRanges),
-    synced: true,
+    months: buildCalendarMonths(month, busyRanges),
   };
-}
-
-function CalendarCard({
-  cabin,
-  cells,
-  month,
-  synced,
-}: {
-  cabin: CabinConfig;
-  cells: CalendarCell[];
-  month: Date;
-  synced: boolean;
-}) {
-  return (
-    <article className="calendar-card">
-      <div className="calendar-card-head">
-        <div>
-          <div className="calendar-title">{cabin.name}</div>
-          <p>Disponibilidad sincronizada desde el calendario de Airbnb.</p>
-        </div>
-        <span className="calendar-chip">{synced ? "Airbnb iCal" : "Sin datos"}</span>
-      </div>
-
-      <div className="calendar-month-label">{monthFormatter.format(month)}</div>
-
-      <div className="calendar-weekdays" aria-hidden="true">
-        {weekdayLabels.map((label) => (
-          <span key={`${cabin.name}-${label}`}>{label}</span>
-        ))}
-      </div>
-
-      <div className="calendar-grid">
-        {cells.map((cell, index) => (
-          <div
-            key={`${cabin.name}-${index}`}
-            className={`calendar-day${cell ? ` calendar-day--${cell.state}` : " is-empty"}`}
-            aria-hidden="true"
-          >
-            {cell?.day ? <span>{cell.day}</span> : null}
-          </div>
-        ))}
-      </div>
-
-      <div className="calendar-legend" aria-hidden="true">
-        <span className="legend-item">
-          <i className="legend-swatch legend-swatch--available" />
-          Disponible
-        </span>
-        <span className="legend-item">
-          <i className="legend-swatch legend-swatch--reserved" />
-          Reservado
-        </span>
-        <span className="legend-item">
-          <i className="legend-swatch legend-swatch--turnover" />
-          Cambio
-        </span>
-      </div>
-
-      <a href={cabin.icalUrl} target="_blank" rel="noreferrer" className="calendar-link">
-        Abrir iCal
-      </a>
-    </article>
-  );
 }
 
 function CabinCard({ cabin }: { cabin: CabinConfig }) {
@@ -115,15 +73,25 @@ function CabinCard({ cabin }: { cabin: CabinConfig }) {
 
   return (
     <article className="cabin-card">
+      <div className="cabin-content">
+        <div className="eyebrow">Alojamiento</div>
+        <h2>{cabin.name}</h2>
+        <p className="tagline">{cabin.tagline}</p>
+        <p className="description">{cabin.description}</p>
+      </div>
+
       <div className="cabin-visual">
         <div className="cabin-rooms">
           {roomCards.map(({ label, slug, photo }) => (
             <figure key={`${cabin.name}-${label}`} className={`room-card room-card--${slug}`}>
               {photo ? (
-                <div className="room-media-wrap">
-                  <img className={`room-media room-media--${slug}`} src={photo} alt={`${cabin.name} - ${label}`} />
-                  <span className="room-badge">{label}</span>
-                </div>
+                <LightboxImage
+                  src={photo}
+                  alt={`${cabin.name} - ${label}`}
+                  className={`room-media-wrap room-media-wrap--clickable room-media-wrap--${slug}`}
+                  imgClassName={`room-media room-media--${slug}`}
+                  title={`Abrir ${label} de ${cabin.name}`}
+                />
               ) : (
                 <div className="room-placeholder">
                   <span>{label}</span>
@@ -137,12 +105,7 @@ function CabinCard({ cabin }: { cabin: CabinConfig }) {
         </div>
       </div>
 
-      <div className="cabin-content">
-        <div className="eyebrow">Alojamiento</div>
-        <h2>{cabin.name}</h2>
-        <p className="tagline">{cabin.tagline}</p>
-        <p className="description">{cabin.description}</p>
-
+      <div className="cabin-amenities">
         <div className="amenities">
           {cabin.amenities.map((amenity) => (
             <span key={amenity} className="pill">
@@ -150,7 +113,6 @@ function CabinCard({ cabin }: { cabin: CabinConfig }) {
             </span>
           ))}
         </div>
-
       </div>
     </article>
   );
@@ -161,19 +123,31 @@ export default async function Home() {
   const calendarSnapshots = await Promise.all(cabins.map((cabin) => loadCalendarSnapshot(cabin, month)));
 
   return (
-    <main className="page-shell">
+    <PhotoLightboxProvider>
+      <main className="page-shell">
       <section className="hero">
         <div className="hero-copy">
           <div className="eyebrow">Cabins Web</div>
-          <h1>Dos cabañas para descansar, desconectar y disfrutar la naturaleza.</h1>
-          <p>
-            Un sitio simple, moderno y rústico para mostrar disponibilidad, ubicación,
-            fotos, comodidades y contacto directo por WhatsApp.
-          </p>
+          <h1 className="hero-title">
+            <span className="hero-title-main">MYSTIC NATURE</span>
+            <span className="hero-title-sub">
+              Cálidas cabañas de montaña rodeadas de naturaleza, ubicadas en las afueras de
+              San Martín de los Andes, a solo 12min del centro, a 10min del Lago Lolog y 1
+              hora caminando a la Laguna Rosales.
+            </span>
+          </h1>
 
           <div className="hero-actions">
             <a className="button button-primary" href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noreferrer">
               Contactar por WhatsApp
+            </a>
+            <a
+              className="button button-secondary"
+              href="https://www.instagram.com/mystic.nature.project"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Instagram
             </a>
             <a className="button button-secondary" href="#calendarios">
               Ver calendarios
@@ -183,21 +157,15 @@ export default async function Home() {
         </div>
 
         <div className="hero-panel hero-instagram">
-          {cabins.map((cabin) => (
-            <a
-              key={`hero-${cabin.name}`}
+          {heroPhotos.map((photo, index) => (
+            <LightboxImage
+              key={`hero-${index}`}
+              src={photo.src}
+              alt={photo.alt}
               className="insta-card"
-              href={cabin.airbnbUrl ?? cabin.icalUrl}
-              target="_blank"
-              rel="noreferrer"
-              aria-label={`Abrir foto de ${cabin.name}`}
-            >
-              <img
-                src={cabin.photos[0]}
-                alt={`Foto de portada de ${cabin.name}`}
-                className="insta-image"
-              />
-            </a>
+              imgClassName="insta-image"
+              title={`Abrir foto del hero ${index + 1}`}
+            />
           ))}
         </div>
       </section>
@@ -205,7 +173,6 @@ export default async function Home() {
       <section className="section">
         <div className="section-heading">
           <div className="eyebrow">Nuestras cabañas</div>
-          <h2>Confort cálido, estética simple y una presencia visual muy limpia.</h2>
         </div>
         <div className="cabins-grid">
           {cabins.map((cabin) => (
@@ -218,15 +185,11 @@ export default async function Home() {
         <div className="section-heading">
           <div className="eyebrow">Calendarios</div>
           <h2>Dos almanaques para ver la disponibilidad de cada cabaña.</h2>
-          <p>
-            Tenés una vista clara de cada calendario y, si querés sincronizarlo, podés
-            abrir el enlace iCal de cada cabaña.
-          </p>
         </div>
 
         <div className="calendar-showcase">
-          {calendarSnapshots.map(({ cabin, cells, month, synced }) => (
-            <CalendarCard key={`${cabin.name}-calendar`} cabin={cabin} cells={cells} month={month} synced={synced} />
+          {calendarSnapshots.map(({ cabin, months }) => (
+            <CalendarCard key={`${cabin.name}-calendar`} cabin={cabin} months={months} />
           ))}
         </div>
       </section>
@@ -235,52 +198,34 @@ export default async function Home() {
         <div className="map-copy">
           <div className="eyebrow">Ubicación</div>
           <h2>Ubicación de las cabañas.</h2>
-          <p>
-            Tocá la vista previa para abrir la ubicación en Google Maps.
-          </p>
-          <div className="location-note">
-            <span>Enlace directo:</span>
-            <p>Vista previa clickeable</p>
-          </div>
           <a className="button button-secondary" href={mapLink} target="_blank" rel="noreferrer">
             Abrir ubicación
           </a>
         </div>
 
-        <a className="map-frame" href={mapLink} target="_blank" rel="noreferrer" aria-label="Abrir ubicación en Google Maps">
-          {mapPreviewImage ? (
-            <img src={mapPreviewImage} alt="" className="map-preview-image" aria-hidden="true" />
-          ) : (
-            <iframe
-              className="map-embed"
-              src={mapLink}
-              title="Vista previa de Google Maps"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          )}
-          <div className="map-overlay">
-            <span className="map-chip">Google Maps</span>
-            <div className="pin" />
-            <h3>Vista previa de la ubicación</h3>
-            <p>Vista previa interactiva para llegar sin vueltas.</p>
-          </div>
-        </a>
+        <LightboxImage
+          src={mapPreviewImage ?? ""}
+          alt="Vista previa de la ubicación de las cabañas"
+          className="map-frame"
+          imgClassName="map-preview-image"
+          title="Abrir vista previa del mapa"
+        />
       </section>
 
       <section className="section">
         <div className="section-heading">
           <div className="eyebrow">Fotos</div>
-          <h2>Una galería que transmite naturaleza, madera y calma.</h2>
+          <h2>Galería de fotos que transmite naturaleza, madera y calma.</h2>
         </div>
         <div className="gallery-grid">
           {gallery.map((image, index) => (
-            <img
+            <LightboxImage
               key={`${image}-${index}`}
               src={image}
               alt={`Galería de cabañas ${index + 1}`}
-              className="gallery-image"
-              loading="lazy"
+              className="gallery-image-wrap"
+              imgClassName="gallery-image"
+              title={`Abrir foto de la galería ${index + 1}`}
             />
           ))}
         </div>
@@ -298,6 +243,7 @@ export default async function Home() {
           WhatsApp: {whatsappDisplay}
         </a>
       </section>
-    </main>
+      </main>
+    </PhotoLightboxProvider>
   );
 }
