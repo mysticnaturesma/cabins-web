@@ -10,7 +10,7 @@ type CabinConfig = {
   amenities: string[];
 };
 
-const whatsappNumberRaw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "+5491164045514";
+const whatsappNumberRaw = "+5491164045514";
 const whatsappNumber = whatsappNumberRaw.replace(/\D/g, "");
 const whatsappDisplay = whatsappNumberRaw;
 const mapLink =
