@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import { CalendarCard } from "@/components/calendar-card";
 import { LightboxImage, PhotoLightboxProvider } from "@/components/photo-lightbox";
 import { cabins, gallery, mapLink, mapPreviewImage, whatsappDisplay, whatsappNumber, type CabinConfig } from "@/lib/site-data";
@@ -20,6 +23,7 @@ type CalendarSnapshot = {
 };
 
 type CalendarMonthSnapshot = {
+  key: string;
   label: string;
   cells: CalendarCell[];
 };
@@ -34,6 +38,7 @@ function buildCalendarMonths(baseMonth: Date, busyRanges: ReturnType<typeof pars
   return Array.from({ length: 12 }, (_, index) => {
     const monthDate = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + index, 1);
     return {
+      key: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`,
       label: monthFormatter.format(monthDate),
       cells: buildCalendarCells(monthDate, busyRanges),
     };
