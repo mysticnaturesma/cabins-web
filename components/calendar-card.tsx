@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CabinConfig } from "@/lib/site-data";
 import type { CalendarCell } from "@/lib/calendar";
 
 type CalendarMonthSnapshot = {
+  key: string;
   label: string;
   cells: CalendarCell[];
 };
@@ -15,8 +16,20 @@ type CalendarCardProps = {
 };
 
 export function CalendarCard({ cabin, months }: CalendarCardProps) {
-  const [selectedMonth, setSelectedMonth] = useState(0);
+  const defaultMonthIndex = useMemo(() => {
+    const now = new Date();
+    const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
+    const matchIndex = months.findIndex((month) => month.key === currentKey);
+
+    return matchIndex >= 0 ? matchIndex : 0;
+  }, [months]);
+
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonthIndex);
   const currentMonth = months[selectedMonth] ?? months[0];
+
+  useEffect(() => {
+    setSelectedMonth(defaultMonthIndex);
+  }, [defaultMonthIndex]);
 
   return (
     <article className="calendar-card">
