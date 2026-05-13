@@ -17,6 +17,8 @@ const heroPhotos = [
   },
 ];
 
+const calendarTimeZone = "America/Argentina/Salta";
+
 type CalendarSnapshot = {
   cabin: CabinConfig;
   months: CalendarMonthSnapshot[];
@@ -31,8 +33,32 @@ type CalendarMonthSnapshot = {
 const monthFormatter = new Intl.DateTimeFormat("es-AR", {
   month: "long",
   year: "numeric",
-  timeZone: "America/Argentina/Salta",
+  timeZone: calendarTimeZone,
 });
+
+function getCalendarMonthParts(reference: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: calendarTimeZone,
+  }).formatToParts(reference);
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+
+  return { year, month };
+}
+
+function getCurrentCalendarMonthAnchor(reference: Date = new Date()) {
+  const { year, month } = getCalendarMonthParts(reference);
+  return new Date(Number(year), Number(month) - 1, 1);
+}
+
+function getCurrentCalendarMonthKey(reference: Date = new Date()) {
+  const { year, month } = getCalendarMonthParts(reference);
+  return `${year}-${month}`;
+}
 
 function buildCalendarMonths(baseMonth: Date, busyRanges: ReturnType<typeof parseBusyRanges>): CalendarMonthSnapshot[] {
   return Array.from({ length: 12 }, (_, index) => {
@@ -124,7 +150,8 @@ function CabinCard({ cabin }: { cabin: CabinConfig }) {
 }
 
 export default async function Home() {
-  const month = new Date();
+  const month = getCurrentCalendarMonthAnchor();
+  const currentMonthKey = getCurrentCalendarMonthKey(month);
   const calendarSnapshots = await Promise.all(cabins.map((cabin) => loadCalendarSnapshot(cabin, month)));
 
   return (
@@ -194,7 +221,12 @@ export default async function Home() {
 
         <div className="calendar-showcase">
           {calendarSnapshots.map(({ cabin, months }) => (
-            <CalendarCard key={`${cabin.name}-calendar`} cabin={cabin} months={months} />
+            <CalendarCard
+              key={`${cabin.name}-calendar`}
+              cabin={cabin}
+              months={months}
+              defaultMonthKey={currentMonthKey}
+            />
           ))}
         </div>
       </section>

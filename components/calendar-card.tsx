@@ -13,16 +13,15 @@ type CalendarMonthSnapshot = {
 type CalendarCardProps = {
   cabin: CabinConfig;
   months: CalendarMonthSnapshot[];
+  defaultMonthKey: string;
 };
 
-export function CalendarCard({ cabin, months }: CalendarCardProps) {
+export function CalendarCard({ cabin, months, defaultMonthKey }: CalendarCardProps) {
   const defaultMonthIndex = useMemo(() => {
-    const now = new Date();
-    const currentKey = `${now.getFullYear()}-${now.getMonth() + 1}`;
-    const matchIndex = months.findIndex((month) => month.key === currentKey);
+    const matchIndex = months.findIndex((month) => month.key === defaultMonthKey);
 
     return matchIndex >= 0 ? matchIndex : 0;
-  }, [months]);
+  }, [defaultMonthKey, months]);
 
   const [selectedMonth, setSelectedMonth] = useState(defaultMonthIndex);
   const currentMonth = months[selectedMonth] ?? months[0];
