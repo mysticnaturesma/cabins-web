@@ -32,19 +32,19 @@ function getCurrentMonthKey() {
 }
 
 export function CalendarCard({ cabin, months }: CalendarCardProps) {
-  const defaultMonthIndex = useMemo(() => {
+  const defaultMonthKey = useMemo(() => {
     const currentKey = getCurrentMonthKey();
-    const matchIndex = months.findIndex((month) => month.key === currentKey);
+    const match = months.find((month) => month.key === currentKey);
 
-    return matchIndex >= 0 ? matchIndex : 0;
+    return match?.key ?? months[0]?.key ?? currentKey;
   }, [months]);
 
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonthIndex);
-  const currentMonth = months[selectedMonth] ?? months[0];
+  const [selectedMonthKey, setSelectedMonthKey] = useState(defaultMonthKey);
+  const currentMonth = months.find((month) => month.key === selectedMonthKey) ?? months[0];
 
   useEffect(() => {
-    setSelectedMonth(defaultMonthIndex);
-  }, [defaultMonthIndex]);
+    setSelectedMonthKey(defaultMonthKey);
+  }, [defaultMonthKey]);
 
   return (
     <article className="calendar-card">
@@ -57,12 +57,12 @@ export function CalendarCard({ cabin, months }: CalendarCardProps) {
         <span className="calendar-month-picker-value">
           <select
             className="calendar-month-select"
-            value={selectedMonth}
-            onChange={(event) => setSelectedMonth(Number(event.target.value))}
+            value={selectedMonthKey}
+            onChange={(event) => setSelectedMonthKey(event.target.value)}
             aria-label={`Seleccionar mes para ${cabin.name}`}
           >
-            {months.map((month, index) => (
-              <option key={`${cabin.name}-${month.label}`} value={index}>
+            {months.map((month) => (
+              <option key={`${cabin.name}-${month.label}`} value={month.key}>
                 {month.label}
               </option>
             ))}
@@ -82,7 +82,7 @@ export function CalendarCard({ cabin, months }: CalendarCardProps) {
       <div className="calendar-grid">
         {currentMonth.cells.map((cell, index) => (
           <div
-            key={`${cabin.name}-${selectedMonth}-${index}`}
+            key={`${cabin.name}-${selectedMonthKey}-${index}`}
             className={`calendar-day${cell ? ` calendar-day--${cell.state}` : " is-empty"}`}
             aria-hidden="true"
           >
