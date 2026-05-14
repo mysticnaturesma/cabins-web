@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { CabinConfig } from "@/lib/site-data";
 import type { CalendarCell } from "@/lib/calendar";
 
+const calendarTimeZone = "America/Argentina/Salta";
+
 type CalendarMonthSnapshot = {
   key: string;
   label: string;
@@ -13,15 +15,29 @@ type CalendarMonthSnapshot = {
 type CalendarCardProps = {
   cabin: CabinConfig;
   months: CalendarMonthSnapshot[];
-  defaultMonthKey: string;
 };
 
-export function CalendarCard({ cabin, months, defaultMonthKey }: CalendarCardProps) {
+function getCurrentMonthKey() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: calendarTimeZone,
+  }).formatToParts(new Date());
+
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+
+  return `${year}-${month}`;
+}
+
+export function CalendarCard({ cabin, months }: CalendarCardProps) {
   const defaultMonthIndex = useMemo(() => {
-    const matchIndex = months.findIndex((month) => month.key === defaultMonthKey);
+    const currentKey = getCurrentMonthKey();
+    const matchIndex = months.findIndex((month) => month.key === currentKey);
 
     return matchIndex >= 0 ? matchIndex : 0;
-  }, [defaultMonthKey, months]);
+  }, [months]);
 
   const [selectedMonth, setSelectedMonth] = useState(defaultMonthIndex);
   const currentMonth = months[selectedMonth] ?? months[0];
