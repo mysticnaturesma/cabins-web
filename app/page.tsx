@@ -50,9 +50,13 @@ function getCalendarMonthParts(reference: Date) {
   return { year, month };
 }
 
+function createSafeMonthDate(year: number, monthIndex: number) {
+  return new Date(Date.UTC(year, monthIndex, 15, 12, 0, 0));
+}
+
 function getCurrentCalendarMonthAnchor(reference: Date = new Date()) {
   const { year, month } = getCalendarMonthParts(reference);
-  return new Date(Number(year), Number(month) - 1, 1);
+  return createSafeMonthDate(Number(year), Number(month) - 1);
 }
 
 function getCurrentCalendarMonthKey(reference: Date = new Date()) {
@@ -61,10 +65,13 @@ function getCurrentCalendarMonthKey(reference: Date = new Date()) {
 }
 
 function buildCalendarMonths(baseMonth: Date, busyRanges: ReturnType<typeof parseBusyRanges>): CalendarMonthSnapshot[] {
+  const baseYear = baseMonth.getUTCFullYear();
+  const baseMonthIndex = baseMonth.getUTCMonth();
+
   return Array.from({ length: 12 }, (_, index) => {
-    const monthDate = new Date(baseMonth.getFullYear(), baseMonth.getMonth() + index, 1);
+    const monthDate = createSafeMonthDate(baseYear, baseMonthIndex + index);
     return {
-      key: `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, "0")}`,
+      key: `${monthDate.getUTCFullYear()}-${String(monthDate.getUTCMonth() + 1).padStart(2, "0")}`,
       label: monthFormatter.format(monthDate),
       cells: buildCalendarCells(monthDate, busyRanges),
     };
