@@ -151,7 +151,6 @@ function CabinCard({ cabin }: { cabin: CabinConfig }) {
 
 export default async function Home() {
   const month = getCurrentCalendarMonthAnchor();
-  const currentMonthKey = getCurrentCalendarMonthKey(month);
   const calendarSnapshots = await Promise.all(cabins.map((cabin) => loadCalendarSnapshot(cabin, month)));
 
   return (
@@ -221,12 +220,7 @@ export default async function Home() {
 
         <div className="calendar-showcase">
           {calendarSnapshots.map(({ cabin, months }) => (
-            <CalendarCard
-              key={`${cabin.name}-calendar`}
-              cabin={cabin}
-              months={months}
-              defaultMonthKey={currentMonthKey}
-            />
+            <CalendarCard key={`${cabin.name}-calendar`} cabin={cabin} months={months} />
           ))}
         </div>
       </section>
